@@ -15,6 +15,7 @@ class NewsController extends Controller
 
         $news->getCollection()->transform(function ($el) {
             $el->description = Str::limit($el->content, 100);
+            $el->tag = $el->tags()->pluck('tag_id')->toArray();
             unset($el->content);
             return $el;
         });
@@ -29,7 +30,8 @@ class NewsController extends Controller
         $validator = Validator::make($request->all(), [
             'title' => 'required|unique:News|string',
             'content' => 'required|string',
-            'user_id' => 'required|integer'
+            'user_id' => 'required|integer',
+            'tags' => 'required|array'
         ]);
         
         if ($validator->fails()) 
@@ -37,13 +39,19 @@ class NewsController extends Controller
             return response()->json($validator->errors(), 400);
         }
         
-        return response()->json(News::create($request->all()), 201);
+        $news = News::create($request->only(['title', 'content', 'user_id']));
+        $news->tags()->attach($request->input('tags'));
+
+        return response()->json($news, 201);
     }
 
 
     public function show(string $id)
     {
-        return response()->json(News::findOrFail($id));
+        $news = News::findOrFail($id);
+        $news->tag = $news->tags()->pluck('tag_id')->toArray();
+        
+        return response()->json($news);
     }
 
 
@@ -54,21 +62,26 @@ class NewsController extends Controller
         $validator = Validator::make($request->all(), [
             'title' => 'required|unique:News|string',
             'content' => 'required|string',
-            'user_id' => 'required|integer'
+            'user_id' => 'required|integer',
+            'tags' => 'required|array'
         ]);
 
         if ($validator->fails()) 
         {
             return response()->json($validator->errors(), 400);
         }
-        
-        return response()->json($ns->update($request->all()), 201);
+    
+        $ns->tags()->sync($request->input('tags'));
+        $ns->update($request->only(['title', 'content', 'user_id']));
+
+        return response()->json($ns, 201);
     }
 
 
     public function destroy(string $id)
     {
         $ns = News::findOrFail($id);
+
         return response()->json($ns->delete(), 201);
     }
 }
