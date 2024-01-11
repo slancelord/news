@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use App\Models\News;
+use App\Models\User;
 
 class NewsController extends Controller
 {
@@ -27,10 +29,12 @@ class NewsController extends Controller
     
     public function store(Request $request)
     {
+        $news = new News();
+
         $validator = Validator::make($request->all(), [
             'title' => 'required|unique:News|string',
             'content' => 'required|string',
-            'user_id' => 'required|integer',
+            'user_id' => 'required|integer|exists:App\Models\User,id',
             'tags' => 'required|array'
         ]);
         
@@ -38,9 +42,12 @@ class NewsController extends Controller
         {
             return response()->json($validator->errors(), 400);
         }
+
+        $validated = $validator->validated();
         
-        $news = News::create($request->only(['title', 'content', 'user_id']));
-        $news->tags()->attach($request->input('tags'));
+        $news = News::create($validated);
+        $news->tags()->attach($validated['tags']);
+        $news->tag = $news->tags()->pluck('tag_id')->toArray();
 
         return response()->json($news, 201);
     }
@@ -57,12 +64,12 @@ class NewsController extends Controller
 
     public function update(Request $request, string $id)
     {
-        $ns = News::findOrFail($id);
+        $news = News::findOrFail($id);
         
         $validator = Validator::make($request->all(), [
-            'title' => 'required|unique:News|string',
+            'title' => 'required|string',  Rule::unique('users')->ignore($id),
             'content' => 'required|string',
-            'user_id' => 'required|integer',
+            'user_id' => 'required|integer|exists:App\Models\User,id',
             'tags' => 'required|array'
         ]);
 
@@ -70,18 +77,28 @@ class NewsController extends Controller
         {
             return response()->json($validator->errors(), 400);
         }
-    
-        $ns->tags()->sync($request->input('tags'));
-        $ns->update($request->only(['title', 'content', 'user_id']));
 
-        return response()->json($ns, 201);
+        $validated = $validator->validated();
+
+        $news->update($validated);
+        $news->tags()->sync($validated['tags']);
+        $news->tag = $news->tags()->pluck('tag_id')->toArray();
+
+        return response()->json($news, 201);
     }
 
 
     public function destroy(string $id)
     {
-        $ns = News::findOrFail($id);
+        $news = News::findOrFail($id);
 
-        return response()->json($ns->delete(), 201);
+        return response()->json($news->delete(), 201);
+    }
+
+    public function restore(string $id)
+    {
+        $news = News::withTrashed()->findOrFail($id);
+
+        return response()->json($news->restore(), 201);
     }
 }
