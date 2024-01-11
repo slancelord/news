@@ -11,13 +11,29 @@ use App\Models\User;
 
 class NewsController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $news = News::paginate(3);
+        $news = new News();
+
+        if($request->has('tag')) 
+        {
+            $tags = explode(',', $request->input('tag'));
+            $news = $news->whereHas('tags', function($query) use ($tags) {
+                $query->whereIn('tag_id', $tags);
+            });
+        }
+
+        if($request->has('title')) 
+        {
+            $titles = explode(',', $request->input('title'));
+            $news = $news->whereIn('title', $titles);
+        }
+
+        $news = $news->paginate(3);
 
         $news->getCollection()->transform(function ($el) {
             $el->description = Str::limit($el->content, 100);
-            $el->tag = $el->tags()->pluck('tag_id')->toArray();
+            $el->tags = $el->tags()->pluck('tag_id')->toArray();
             unset($el->content);
             return $el;
         });
@@ -47,7 +63,7 @@ class NewsController extends Controller
         
         $news = News::create($validated);
         $news->tags()->attach($validated['tags']);
-        $news->tag = $news->tags()->pluck('tag_id')->toArray();
+        $news->tags = $news->tags()->pluck('tag_id')->toArray();
 
         return response()->json($news, 201);
     }
@@ -56,7 +72,7 @@ class NewsController extends Controller
     public function show(string $id)
     {
         $news = News::findOrFail($id);
-        $news->tag = $news->tags()->pluck('tag_id')->toArray();
+        $news->tags = $news->tags()->pluck('tag_id')->toArray();
         
         return response()->json($news);
     }
@@ -82,7 +98,7 @@ class NewsController extends Controller
 
         $news->update($validated);
         $news->tags()->sync($validated['tags']);
-        $news->tag = $news->tags()->pluck('tag_id')->toArray();
+        $news->tags = $news->tags()->pluck('tag_id')->toArray();
 
         return response()->json($news, 201);
     }
