@@ -5,10 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Prunable;
 
 class News extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, Prunable;
 
     protected $fillable = [
         'title',
@@ -24,5 +25,10 @@ class News extends Model
     public function tags() 
     {
         return $this->belongsToMany(Tag::class);
+    }
+
+    public function prunable()
+    {
+        return static::where('deleted_at', '<=', now()->subMonth());
     }
 }

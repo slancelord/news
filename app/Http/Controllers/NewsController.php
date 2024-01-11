@@ -7,7 +7,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use App\Models\News;
-use App\Models\User;
 
 class NewsController extends Controller
 {

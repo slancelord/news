@@ -17,3 +17,7 @@ use Illuminate\Support\Facades\Route;
 //Route::middleware('auth:sanctum')->apiResource('/news', 'App\Http\Controllers\NewsController');
 Route::apiResource('/news', 'App\Http\Controllers\NewsController');
 Route::put('/news/{news}/restore', 'App\Http\Controllers\NewsController@restore')->name('news.restore');
+
+Route::get('/tag', 'App\Http\Controllers\TagController@index')->name('tag.index');
+
+Route::get('/user', 'App\Http\Controllers\UserController@index')->name('user.index');
