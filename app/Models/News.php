@@ -24,7 +24,7 @@ class News extends Model
 
     public function tags() 
     {
-        return $this->belongsToMany(Tag::class);
+        return $this->belongsToMany(Tag::class)->using(NewsTag::class);
     }
 
     public function prunable()

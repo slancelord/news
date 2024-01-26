@@ -2,21 +2,30 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Support\Facades\Validator;
+use \Illuminate\Validation\ValidationException;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
-use Illuminate\Validation\Rule;
+use App\Http\Resources\NewsResource;
 use App\Models\News;
 
 class NewsController extends Controller
 {
     public function index(Request $request)
     {
-        $news = new News();
+        $news = News::query();
 
-        if($request->has('tag')) 
+        try{
+            $validated = $request->validate([
+                'title' => 'string',
+                'tags' => 'array',
+                'tags.*' => 'integer|exists:tags,id'
+            ]);
+        } catch(ValidationException  $error) {
+            return response($error->errors(), 400);
+        }
+
+        if($request->has('tags')) 
         {
-            $tags = explode(',', $request->input('tag'));
+            $tags = $request->input('tags');
             $news = $news->whereHas('tags', function($query) use ($tags) {
                 $query->whereIn('tag_id', $tags);
             });
@@ -24,56 +33,40 @@ class NewsController extends Controller
 
         if($request->has('title')) 
         {
-            $titles = explode(',', $request->input('title'));
-            $news = $news->whereIn('title', $titles);
+            $news = $news->where('title', 'like', '%' . $request->input('title') . '%');
         }
 
-        $news = $news->paginate(3);
-
-        $news->getCollection()->transform(function ($el) {
-            $el->description = Str::limit($el->content, 100);
-            $el->tags = $el->tags()->pluck('tag_id')->toArray();
-            unset($el->content);
-            return $el;
-        });
-
-        return response()->json($news);
+        return NewsResource::collection($news->paginate(3));
     }
 
 
     
     public function store(Request $request)
     {
-        $news = new News();
-
-        $validator = Validator::make($request->all(), [
-            'title' => 'required|unique:News|string',
-            'content' => 'required|string',
-            'user_id' => 'required|integer|exists:App\Models\User,id',
-            'tags' => 'required|array'
-        ]);
-        
-        if ($validator->fails()) 
-        {
-            return response()->json($validator->errors(), 400);
+        try{
+            $validated = $request->validate([
+                'title' => 'required|string',
+                'content' => 'required|string',
+                'user_id' => 'required|integer|exists:users,id',
+                'tags' => 'required|array',
+                'tags.*' => 'required|integer|exists:tags,id'
+            ]);
+        } catch(ValidationException  $error) {
+            return response($error->errors(), 400);
         }
-
-        $validated = $validator->validated();
         
         $news = News::create($validated);
-        $news->tags()->attach($validated['tags']);
-        $news->tags = $news->tags()->pluck('tag_id')->toArray();
+        $news->tags()->sync($validated['tags']);
 
-        return response()->json($news, 201);
+        return response(new NewsResource($news), 201);
     }
 
 
     public function show(string $id)
     {
         $news = News::findOrFail($id);
-        $news->tags = $news->tags()->pluck('tag_id')->toArray();
         
-        return response()->json($news);
+        return new NewsResource($news);
     }
 
 
@@ -81,25 +74,22 @@ class NewsController extends Controller
     {
         $news = News::findOrFail($id);
         
-        $validator = Validator::make($request->all(), [
-            'title' => 'required|string',  Rule::unique('users')->ignore($id),
-            'content' => 'required|string',
-            'user_id' => 'required|integer|exists:App\Models\User,id',
-            'tags' => 'required|array'
-        ]);
-
-        if ($validator->fails()) 
-        {
-            return response()->json($validator->errors(), 400);
+        try{
+            $validated = $request->validate([
+                'title' => 'required|string',
+                'content' => 'required|string',
+                'user_id' => 'required|integer|exists:users,id',
+                'tags' => 'required|array',
+                'tags.*' => 'required|integer|exists:tags,id'
+            ]);
+        } catch(ValidationException  $error) {
+            return response($error->errors(), 400);
         }
-
-        $validated = $validator->validated();
 
         $news->update($validated);
         $news->tags()->sync($validated['tags']);
-        $news->tags = $news->tags()->pluck('tag_id')->toArray();
 
-        return response()->json($news, 201);
+        return response(new NewsResource($news), 201);
     }
 
 
@@ -107,13 +97,13 @@ class NewsController extends Controller
     {
         $news = News::findOrFail($id);
 
-        return response()->json($news->delete(), 201);
+        return response($news->delete(), 201);
     }
 
     public function restore(string $id)
     {
         $news = News::withTrashed()->findOrFail($id);
 
-        return response()->json($news->restore(), 201);
+        return response($news->restore(), 201);
     }
 }

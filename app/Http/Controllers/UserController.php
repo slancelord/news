@@ -11,6 +11,6 @@ class UserController extends Controller
     {
         $user = new User();
 
-        return response()->json($user->paginate(5));
+        return $user->paginate(5);
     }
 }

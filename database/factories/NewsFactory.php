@@ -24,8 +24,6 @@ class NewsFactory extends Factory
             'title' => Str::random(10),
             'content' => Str::random(400),
             'user_id' => User::inRandomOrder()->first(),
-            'created_at' => now(),
-            'updated_at' => now(),
         ];
     }
 
@@ -33,7 +31,7 @@ class NewsFactory extends Factory
     {
         return $this->afterCreating(function (News $news) {
             
-                $news->tags()->attach(Tag::pluck('id')->random(rand(1, Tag::count())));
+                $news->tags()->sync(Tag::pluck('id')->random(rand(1, Tag::count())));
         });
     }
 }

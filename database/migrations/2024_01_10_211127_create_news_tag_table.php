@@ -12,12 +12,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('news_tag', function (Blueprint $table) {
-            $table->id();
             $table->foreignId('news_id')->constrained()->cascadeOnDelete();;
             $table->foreignId('tag_id')->constrained()->cascadeOnDelete();;
             $table->timestamps();
 
-            //$table->unique(['news_id', 'tag_id']);
+            $table->unique(['news_id', 'tag_id']);
         });
     }
 

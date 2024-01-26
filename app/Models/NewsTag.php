@@ -4,13 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\Pivot;
 
-class Tag extends Model
+class NewsTag extends Pivot
 {
     use HasFactory;
-
-    public function news() 
-    {
-        return $this->belongsToMany(News::class)->using(NewsTag::class);;
-    }
 }

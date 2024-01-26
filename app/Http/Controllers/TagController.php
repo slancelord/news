@@ -11,6 +11,6 @@ class TagController extends Controller
     {
         $tag = new Tag();
 
-        return response()->json($tag->paginate(5));
+        return $tag->paginate(5);
     }
 }
